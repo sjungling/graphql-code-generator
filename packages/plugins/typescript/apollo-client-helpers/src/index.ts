@@ -43,14 +43,18 @@ function generateTypePoliciesSignature(
 ${fieldsNames.map(fieldName => `\t${fieldName}?: FieldPolicy<any> | FieldReadFunction<any>`).join(',\n')}
 };`);
 
+      perTypePolicies.push(`export type ${typeName}FieldsFunction = (
+        object: Readonly<StoreObject>,
+        context: KeyFieldsContext,
+      ) => ${keySpecifierVarName}  | false | ReturnType<IdGetter>;
+      `);
+
       return {
         ...prev,
         [typeName]: `Omit<TypePolicy, "fields" | "keyFields"> & {
-\t\tkeyFields${
-          config.requireKeyFields ? '' : '?'
-        }: false | ${keySpecifierVarName} | (() => undefined | ${keySpecifierVarName}),
-\t\tfields?: ${fieldPolicyVarName},
-\t}`,
+      \t\tkeyFields${config.requireKeyFields ? '' : '?'}: false | ${keySpecifierVarName} | ${typeName}FieldsFunction,
+      \t\tfields?: ${fieldPolicyVarName},
+      \t}`,
       };
     }
 
@@ -73,9 +77,8 @@ ${fieldsNames.map(fieldName => `\t${fieldName}?: FieldPolicy<any> | FieldReadFun
 
   return {
     prepend: [
-      `import ${
-        config.useTypeImports ? 'type ' : ''
-      }{ FieldPolicy, FieldReadFunction, TypePolicies, TypePolicy } from '@apollo/client/cache';`,
+      `import ${config.useTypeImports ? 'type ' : ''}{ FieldPolicy, FieldReadFunction, IdGetter, StoreObject, TypePolicies, TypePolicy } from '@apollo/client/cache';`,
+      `import { KeyFieldsContext } from '@apollo/client/cache/inmemory/policies';`
     ],
     content: [...perTypePolicies, rootContent].join('\n'),
   };
